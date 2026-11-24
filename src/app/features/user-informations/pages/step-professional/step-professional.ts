@@ -1,23 +1,43 @@
-import { Component, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { CurriculumFormStore } from '../../../../core/services/curriculum-form-store';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { InputValidationDirective } from '../../../../shared/directives/input-validation-directive';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map, tap } from 'rxjs';
 
 @Component({
   selector: 'app-step-professional',
-  imports: [RouterLink],
+  imports: [RouterLink, ReactiveFormsModule, InputValidationDirective],
   templateUrl: './step-professional.html',
 })
 export class StepProfessional {
-  experiences = signal<{ id: number }[]>([{ id: Date.now() }]);
+  readonly _curriculumFormStore = inject(CurriculumFormStore)
+  private readonly _router = inject(Router);
+
+    // conversão de um formArray para um signal para melhorar a reatividade do formulário
+   professionalArrayControls = toSignal(this._curriculumFormStore.ProfessionalFormArray.valueChanges.pipe(
+    map(() =>this._curriculumFormStore.ProfessionalFormArray.controls)
+   ), {
+      initialValue: this._curriculumFormStore.ProfessionalFormArray.controls
+   }
+  );
 
   addExperience() {
-    this.experiences.update((list) => [...list, { id: Date.now() }]);
+   this._curriculumFormStore.ProfessionalFormArray.push(
+    new FormGroup({
+       position: new FormControl('', [Validators.required]),
+        company: new FormControl('', [Validators.required]),
+        description: new FormControl('', [Validators.required]),
+    })
+   );
   }
 
-  removeExperience(id: number) {
-    this.experiences.update((list) => list.filter((item) => item.id !== id));
+  removeExperience(index: number) {
+    this._curriculumFormStore.ProfessionalFormArray.removeAt(index);
   }
 
-  submit() {
-    alert('🚀 Currículo enviado para a órbita!');
+  goToResume() {
+    this._router.navigate(['/resume-informations'])
   }
 }
